@@ -56,6 +56,73 @@ Or via Xcode:
 
 ### Basic Setup
 
+Do not attach or manipulate UIKit views/layers for screenshot protection.
+Use a separate overlay window or a SwiftUI-based view instead.
+This avoids conflicts with the system’s CALayer layout and prevents crashes.
+
+- SceneDelegate
+
+```swft
+class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+    static var shared: SceneDelegate?
+    var window: UIWindow?
+    
+    lazy var screenProtectorKitManager = {
+        return ScreenProtectorKitManager(
+            screenProtectorKit: ScreenProtectorKit(window: self.window)
+        )
+    }()
+    
+    func scene(
+        _ scene: UIScene,
+        willConnectTo session: UISceneSession,
+        options connectionOptions: UIScene.ConnectionOptions
+    ) {
+        guard let windowScene = (scene as? UIWindowScene) else { return }
+
+        let controller = UIHostingController(rootView: ContentView())
+        let window = UIWindow(windowScene: windowScene)
+        window.rootViewController = controller
+        self.window = window
+        window.makeKeyAndVisible()
+        
+        SceneDelegate.shared = self
+    }
+    
+    func sceneDidBecomeActive(_ scene: UIScene) {
+        screenProtectorKitManager.applicationDidBecomeActive(UIApplication.shared)
+    }
+    
+    func sceneWillResignActive(_ scene: UIScene) {
+        screenProtectorKitManager.applicationWillResignActive(UIApplication.shared)
+    }
+}
+```
+
+- ContentView
+
+```swift
+import SwiftUI
+import ScreenProtectorKit
+
+struct ContentView: View {
+    var body: some View {
+        Text("Hello, World!")
+            .onAppear {
+                SceneDelegate.shared?
+                    .screenProtectorKitManager
+                    .enableScreenshotPrevention()
+            }
+    }
+}
+
+#Preview {
+    ContentView()
+}
+```
+
+- AppDelegate
+
 ```swift
 import ScreenProtectorKit
 
