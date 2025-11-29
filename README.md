@@ -42,7 +42,7 @@ Add to your `Package.swift`:
 ```swift
 let package = Package(
   dependencies: [
-    .package(url: "https://github.com/prongbang/ScreenProtectorKit.git", from: "1.4.2"),
+    .package(url: "https://github.com/prongbang/ScreenProtectorKit.git", from: "1.4.3"),
   ],
 )
 ```
@@ -50,7 +50,7 @@ let package = Package(
 Or via Xcode:
 1. File → Add Packages...
 2. Enter package URL: `https://github.com/prongbang/ScreenProtectorKit.git`
-3. Select version: `1.4.2` or later
+3. Select version: `1.4.3` or later
 
 ## 🚀 Quick Start
 
@@ -90,11 +90,13 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
     
     func sceneDidBecomeActive(_ scene: UIScene) {
-        screenProtectorKitManager.applicationDidBecomeActive(UIApplication.shared)
+        screenProtectorKitManager.applicationDidBecomeActive(.dataLeakage)
+        screenProtectorKitManager.applicationDidBecomeActive(.screenshot)
     }
     
     func sceneWillResignActive(_ scene: UIScene) {
-        screenProtectorKitManager.applicationWillResignActive(UIApplication.shared)
+        screenProtectorKitManager.applicationWillResignActive(.dataLeakage)
+        screenProtectorKitManager.applicationWillResignActive(.screenshot)
     }
 }
 ```

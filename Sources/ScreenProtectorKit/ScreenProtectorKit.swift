@@ -17,7 +17,7 @@ import UIKit
 //  }
 public class ScreenProtectorKit {
     
-    private var window: UIWindow? = nil
+    public var window: UIWindow? = nil
     private var screenImage: UIImageView? = nil
     private var screenBlur: UIView? = nil
     private var screenColor: UIView? = nil

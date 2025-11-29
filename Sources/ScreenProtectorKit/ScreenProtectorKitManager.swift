@@ -17,6 +17,11 @@ public enum ProtectionState {
     case off
 }
 
+public enum ProtectionType {
+    case screenshot
+    case dataLeakage
+}
+
 public enum ListenerStatus: String, Equatable {
     case listened
     case removed
@@ -42,6 +47,8 @@ public enum ProtectionMode: Equatable {
 }
 
 public protocol ScreenProtectorKitManaging: AnyObject {
+    func applicationWillResignActive(_ type: ProtectionType)
+    func applicationDidBecomeActive(_ type: ProtectionType)
     func applicationWillResignActive(_ application: UIApplication)
     func applicationDidBecomeActive(_ application: UIApplication)
     
@@ -91,36 +98,54 @@ public final class ScreenProtectorKitManager: ScreenProtectorKitManaging {
     private var colorProtectionHex: String { syncQueue.sync { _colorProtectionHex } }
     
     // MARK: - ScreenProtectorKitManaging
-    public func applicationWillResignActive(_ application: UIApplication) {
-        // Protect Data Leakage - ON
-        if colorProtectionState == .on {
-            onMain { self.screenProtectorKit?.enabledColorScreen(hexColor: self.colorProtectionHex) }
-        } else if imageProtectionState == .on {
-            onMain { self.screenProtectorKit?.enabledImageScreen(named: self.imageProtectionName) }
-        } else if blurProtectionState == .on {
-            onMain { self.screenProtectorKit?.enabledBlurScreen() }
+    public func applicationWillResignActive(_ type: ProtectionType) {
+        if type == .dataLeakage {
+            // Protect Data Leakage - ON
+            if colorProtectionState == .on {
+                onMain { self.screenProtectorKit?.enabledColorScreen(hexColor: self.colorProtectionHex) }
+            } else if imageProtectionState == .on {
+                onMain { self.screenProtectorKit?.enabledImageScreen(named: self.imageProtectionName) }
+            } else if blurProtectionState == .on {
+                onMain { self.screenProtectorKit?.enabledBlurScreen() }
+            }
         }
         
-        // Prevent Screenshot - OFF
-        if preventScreenshotState == .off {
-            onMain { self.screenProtectorKit?.disablePreventScreenshot() }
+        if type == .screenshot {
+            // Prevent Screenshot - OFF
+            if preventScreenshotState == .off {
+                onMain { self.screenProtectorKit?.disablePreventScreenshot() }
+            }
         }
     }
     
-    public func applicationDidBecomeActive(_ application: UIApplication) {
-        // Protect Data Leakage - OFF
-        if colorProtectionState == .on {
-            onMain { self.screenProtectorKit?.disableColorScreen() }
-        } else if imageProtectionState == .on {
-            onMain { self.screenProtectorKit?.disableImageScreen() }
-        } else if blurProtectionState == .on {
-            onMain { self.screenProtectorKit?.disableBlurScreen() }
+    public func applicationDidBecomeActive(_ type: ProtectionType) {
+        if type == .dataLeakage {
+            // Protect Data Leakage - OFF
+            if colorProtectionState == .on {
+                onMain { self.screenProtectorKit?.disableColorScreen() }
+            } else if imageProtectionState == .on {
+                onMain { self.screenProtectorKit?.disableImageScreen() }
+            } else if blurProtectionState == .on {
+                onMain { self.screenProtectorKit?.disableBlurScreen() }
+            }
         }
         
-        // Prevent Screenshot - ON
-        if preventScreenshotState == .on {
-            onMain { self.screenProtectorKit?.enabledPreventScreenshot() }
+        if type == .screenshot {
+            // Prevent Screenshot - ON
+            if preventScreenshotState == .on {
+                onMain { self.screenProtectorKit?.enabledPreventScreenshot() }
+            }
         }
+    }
+    
+    public func applicationWillResignActive(_ application: UIApplication) {
+        applicationWillResignActive(.dataLeakage)
+        applicationWillResignActive(.screenshot)
+    }
+    
+    public func applicationDidBecomeActive(_ application: UIApplication) {
+        applicationDidBecomeActive(.dataLeakage)
+        applicationDidBecomeActive(.screenshot)
     }
     
     public func disableAllProtection() -> Bool {
