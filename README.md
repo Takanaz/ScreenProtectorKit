@@ -42,7 +42,7 @@ Add to your `Package.swift`:
 ```swift
 let package = Package(
   dependencies: [
-    .package(url: "https://github.com/prongbang/ScreenProtectorKit.git", from: "1.4.4"),
+    .package(url: "https://github.com/prongbang/ScreenProtectorKit.git", from: "1.4.5"),
   ],
 )
 ```
@@ -50,7 +50,7 @@ let package = Package(
 Or via Xcode:
 1. File → Add Packages...
 2. Enter package URL: `https://github.com/prongbang/ScreenProtectorKit.git`
-3. Select version: `1.4.4` or later
+3. Select version: `1.4.5` or later
 
 ## 🚀 Quick Start
 
@@ -66,13 +66,13 @@ This avoids conflicts with the system’s CALayer layout and prevents crashes.
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     static var shared: SceneDelegate?
     var window: UIWindow?
-    
+
     lazy var screenProtectorKitManager = {
         return ScreenProtectorKitManager(
             screenProtectorKit: ScreenProtectorKit(window: self.window)
         )
     }()
-    
+
     func scene(
         _ scene: UIScene,
         willConnectTo session: UISceneSession,
@@ -85,15 +85,15 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.rootViewController = controller
         self.window = window
         window.makeKeyAndVisible()
-        
+
         SceneDelegate.shared = self
     }
-    
+
     func sceneDidBecomeActive(_ scene: UIScene) {
         screenProtectorKitManager.applicationDidBecomeActive(.dataLeakage)
         screenProtectorKitManager.applicationDidBecomeActive(.screenshot)
     }
-    
+
     func sceneWillResignActive(_ scene: UIScene) {
         screenProtectorKitManager.applicationWillResignActive(.dataLeakage)
         screenProtectorKitManager.applicationWillResignActive(.screenshot)
@@ -129,10 +129,10 @@ struct ContentView: View {
 import ScreenProtectorKit
 
 class AppDelegate: FlutterAppDelegate {
-    private lazy var screenProtectorKit = { 
-        return ScreenProtectorKit(window: window) 
+    private lazy var screenProtectorKit = {
+        return ScreenProtectorKit(window: window)
     }()
-    
+
     override func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
@@ -221,41 +221,41 @@ if isRecording {
 import ScreenProtectorKit
 
 class AppDelegate: FlutterAppDelegate {
-    private lazy var screenProtectorKit = { 
-        return ScreenProtectorKit(window: window) 
+    private lazy var screenProtectorKit = {
+        return ScreenProtectorKit(window: window)
     }()
-    
+
     override func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
         // Setup screenshot prevention
         screenProtectorKit.configurePreventionScreenshot()
-        
+
         // Handle screen recording if needed
         if screenProtectorKit.screenIsRecording() {
             showRecordingWarning()
         }
-        
+
         return true
     }
-    
+
     override func applicationDidBecomeActive(_ application: UIApplication) {
         // Enable screenshot prevention
         screenProtectorKit.enabledPreventScreenshot()
-        
+
         // Remove protection overlay
         screenProtectorKit.disableBlurScreen()
     }
-    
+
     override func applicationWillResignActive(_ application: UIApplication) {
         // Disable screenshot prevention
         screenProtectorKit.disablePreventScreenshot()
-        
+
         // Add protection overlay
         screenProtectorKit.enabledBlurScreen()
     }
-    
+
     private func showRecordingWarning() {
         // Show alert to user about screen recording
     }
