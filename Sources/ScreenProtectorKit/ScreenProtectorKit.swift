@@ -80,12 +80,20 @@ public class ScreenProtectorKit {
     //     screenProtectorKit.enabledBlurScreen()
     // }
     public func enabledBlurScreen(style: UIBlurEffect.Style = UIBlurEffect.Style.light) {
-        screenBlur = UIScreen.main.snapshotView(afterScreenUpdates: false)
-        let blurEffect = UIBlurEffect(style: style)
-        let blurBackground = UIVisualEffectView(effect: blurEffect)
-        screenBlur?.addSubview(blurBackground)
-        blurBackground.frame = (screenBlur?.frame)!
-        window?.addSubview(screenBlur!)
+        guard let w = window else { return }
+
+        if self.screenBlur == nil {
+            let blurEffect = UIBlurEffect(style: style)
+            let blurView = UIVisualEffectView(effect: blurEffect)
+            blurView.frame = w.bounds
+            blurView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            blurView.isUserInteractionEnabled = false
+            screenBlur = blurView
+            w.addSubview(blurView)
+        }
+
+        screenBlur?.isHidden = false
+        screenBlur?.alpha = 1.0
     }
     
     // How to used:
@@ -94,8 +102,8 @@ public class ScreenProtectorKit {
     //     screenProtectorKit.disableBlurScreen()
     // }
     public func disableBlurScreen() {
-        screenBlur?.removeFromSuperview()
-        screenBlur = nil
+        screenBlur?.alpha = 0.0
+        screenBlur?.isHidden = true
     }
     
     // How to used:
@@ -105,10 +113,17 @@ public class ScreenProtectorKit {
     // }
     public func enabledColorScreen(hexColor: String) {
         guard let w = window else { return }
-        screenColor = UIView(frame: w.bounds)
-        guard let view = screenColor else { return }
-        view.backgroundColor = UIColor(hexString: hexColor)
-        w.addSubview(view)
+
+        if screenColor == nil {
+            let view = UIView(frame: w.bounds)
+            view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            view.backgroundColor = UIColor(hexString: hexColor)
+            screenColor = view
+            w.addSubview(view)
+        }
+
+        screenColor?.isHidden = false
+        screenColor?.alpha = 1.0
     }
     
     // How to used:
@@ -117,8 +132,8 @@ public class ScreenProtectorKit {
     //     screenProtectorKit.disableColorScreen()
     // }
     public func disableColorScreen() {
-        screenColor?.removeFromSuperview()
-        screenColor = nil
+        screenColor?.isHidden = true
+        screenColor?.alpha = 0.0
     }
     
     // How to used:
@@ -127,12 +142,21 @@ public class ScreenProtectorKit {
     //     screenProtectorKit.enabledImageScreen(named: "LaunchImage")
     // }
     public func enabledImageScreen(named: String) {
-        screenImage = UIImageView(frame: UIScreen.main.bounds)
-        screenImage?.image = UIImage(named: named)
-        screenImage?.isUserInteractionEnabled = false
-        screenImage?.contentMode = .scaleAspectFill;
-        screenImage?.clipsToBounds = true;
-        window?.addSubview(screenImage!)
+        guard let w = window else { return }
+
+        if screenImage == nil {
+            let imageView = UIImageView(frame: w.bounds)
+            imageView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            imageView.image = UIImage(named: named)
+            imageView.isUserInteractionEnabled = false
+            imageView.contentMode = .scaleAspectFill
+            imageView.clipsToBounds = true
+            screenImage = imageView
+            w.addSubview(imageView)
+        }
+
+        screenImage?.isHidden = false
+        screenImage?.alpha = 1.0
     }
     
     // How to used:
@@ -141,8 +165,8 @@ public class ScreenProtectorKit {
     //     screenProtectorKit.disableImageScreen()
     // }
     public func disableImageScreen() {
-        screenImage?.removeFromSuperview()
-        screenImage = nil
+        screenImage?.isHidden = true
+        screenImage?.alpha = 0.0
     }
     
     // How to used:
