@@ -22,6 +22,7 @@ public class ScreenProtectorKit {
     private var screenBlur: UIView? = nil
     private var screenColor: UIView? = nil
     private var screenPrevent = UITextField()
+    private weak var windowSuperlayer: CALayer? = nil
     private var screenshotObserve: NSObjectProtocol? = nil
     private var screenRecordObserve: NSObjectProtocol? = nil
     
@@ -41,21 +42,22 @@ public class ScreenProtectorKit {
     //      return true
     //  }
     public func configurePreventionScreenshot() {
-    guard let w = window else { return }
-    
-    if (!w.subviews.contains(screenPrevent)) {
-        screenPrevent.translatesAutoresizingMaskIntoConstraints = false
-        screenPrevent.isUserInteractionEnabled = false
-        screenPrevent.backgroundColor = .clear
-        w.addSubview(screenPrevent)
-        NSLayoutConstraint.activate([
-            screenPrevent.topAnchor.constraint(equalTo: w.topAnchor),
-            screenPrevent.leadingAnchor.constraint(equalTo: w.leadingAnchor),
-            screenPrevent.trailingAnchor.constraint(equalTo: w.trailingAnchor),
-            screenPrevent.bottomAnchor.constraint(equalTo: w.bottomAnchor)
-        ])
+        guard let w = window else { return }
+
+        if (!w.subviews.contains(screenPrevent)) {
+            screenPrevent.translatesAutoresizingMaskIntoConstraints = false
+            screenPrevent.isUserInteractionEnabled = false
+            screenPrevent.backgroundColor = .clear
+            screenPrevent.textColor = .clear
+            w.addSubview(screenPrevent)
+            NSLayoutConstraint.activate([
+                screenPrevent.topAnchor.constraint(equalTo: w.topAnchor),
+                screenPrevent.leadingAnchor.constraint(equalTo: w.leadingAnchor),
+                screenPrevent.trailingAnchor.constraint(equalTo: w.trailingAnchor),
+                screenPrevent.bottomAnchor.constraint(equalTo: w.bottomAnchor)
+            ])
+        }
     }
-}
     
     // How to used:
     //
@@ -63,7 +65,33 @@ public class ScreenProtectorKit {
     //     screenProtectorKit.enabledPreventScreenshot()
     // }
     public func enabledPreventScreenshot() {
+        guard let w = window else { return }
+        configurePreventionScreenshot()
+
         screenPrevent.isSecureTextEntry = true
+        screenPrevent.layoutIfNeeded()
+
+        if windowSuperlayer == nil {
+            windowSuperlayer = w.layer.superlayer
+        }
+
+        guard let superlayer = windowSuperlayer else { return }
+
+        if screenPrevent.layer.superlayer !== superlayer {
+            superlayer.addSublayer(screenPrevent.layer)
+        }
+
+        let secureLayer: CALayer? = {
+            if #available(iOS 17.0, *) {
+                return screenPrevent.layer.sublayers?.last
+            }
+            return screenPrevent.layer.sublayers?.first
+        }()
+
+        if let secureLayer = secureLayer, w.layer.superlayer !== secureLayer {
+            w.layer.removeFromSuperlayer()
+            secureLayer.addSublayer(w.layer)
+        }
     }
     
     // How to used:
@@ -72,7 +100,20 @@ public class ScreenProtectorKit {
     //     screenProtectorKit.disablePreventScreenshot()
     // }
     public func disablePreventScreenshot() {
+        guard let w = window else { return }
         screenPrevent.isSecureTextEntry = false
+
+        guard let superlayer = windowSuperlayer else { return }
+
+        if w.layer.superlayer !== superlayer {
+            w.layer.removeFromSuperlayer()
+            superlayer.addSublayer(w.layer)
+        }
+
+        if screenPrevent.layer.superlayer !== w.layer {
+            screenPrevent.layer.removeFromSuperlayer()
+            w.layer.addSublayer(screenPrevent.layer)
+        }
     }
     
     // How to used:
