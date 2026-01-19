@@ -41,20 +41,21 @@ public class ScreenProtectorKit {
     //      return true
     //  }
     public func configurePreventionScreenshot() {
-        guard let w = window else { return }
-        
-        if (!w.subviews.contains(screenPrevent)) {
-            w.addSubview(screenPrevent)
-            screenPrevent.centerYAnchor.constraint(equalTo: w.centerYAnchor).isActive = true
-            screenPrevent.centerXAnchor.constraint(equalTo: w.centerXAnchor).isActive = true
-            w.layer.superlayer?.addSublayer(screenPrevent.layer)
-            if #available(iOS 17.0, *) {
-                screenPrevent.layer.sublayers?.last?.addSublayer(w.layer)
-            } else {
-                screenPrevent.layer.sublayers?.first?.addSublayer(w.layer)
-            }
-        }
+    guard let w = window else { return }
+    
+    if (!w.subviews.contains(screenPrevent)) {
+        screenPrevent.translatesAutoresizingMaskIntoConstraints = false
+        screenPrevent.isUserInteractionEnabled = false
+        screenPrevent.backgroundColor = .clear
+        w.addSubview(screenPrevent)
+        NSLayoutConstraint.activate([
+            screenPrevent.topAnchor.constraint(equalTo: w.topAnchor),
+            screenPrevent.leadingAnchor.constraint(equalTo: w.leadingAnchor),
+            screenPrevent.trailingAnchor.constraint(equalTo: w.trailingAnchor),
+            screenPrevent.bottomAnchor.constraint(equalTo: w.bottomAnchor)
+        ])
     }
+}
     
     // How to used:
     //
