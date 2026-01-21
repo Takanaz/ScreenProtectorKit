@@ -26,6 +26,8 @@ public class ScreenProtectorKit {
     private weak var windowSuperlayer: CALayer? = nil
     private var screenshotObserve: NSObjectProtocol? = nil
     private var screenRecordObserve: NSObjectProtocol? = nil
+    private var isWindowLayerReparented = false
+    private var isUpdatingPreventScreenshot = false
     
     public init(window: UIWindow?) {
         self.window = window
@@ -67,10 +69,15 @@ public class ScreenProtectorKit {
     // }
     public func enabledPreventScreenshot() {
         guard let w = window else { return }
+        if isUpdatingPreventScreenshot { return }
+        isUpdatingPreventScreenshot = true
+        defer { isUpdatingPreventScreenshot = false }
         configurePreventionScreenshot()
 
         screenPrevent.isSecureTextEntry = true
         screenPrevent.layoutIfNeeded()
+
+        guard canReparentWindowLayer(w) else { return }
 
         if windowSuperlayer == nil {
             windowSuperlayer = w.layer.superlayer
@@ -92,6 +99,7 @@ public class ScreenProtectorKit {
         if let secureLayer = secureLayer, w.layer.superlayer !== secureLayer {
             w.layer.removeFromSuperlayer()
             secureLayer.addSublayer(w.layer)
+            isWindowLayerReparented = true
         }
     }
     
@@ -104,6 +112,9 @@ public class ScreenProtectorKit {
         guard let w = window else { return }
         screenPrevent.isSecureTextEntry = false
 
+        guard isWindowLayerReparented else { return }
+        isWindowLayerReparented = false
+
         guard let superlayer = windowSuperlayer else { return }
 
         if w.layer.superlayer !== superlayer {
@@ -115,6 +126,25 @@ public class ScreenProtectorKit {
             screenPrevent.layer.removeFromSuperlayer()
             w.layer.addSublayer(screenPrevent.layer)
         }
+    }
+
+    private func canReparentWindowLayer(_ w: UIWindow) -> Bool {
+        if #available(iOS 13.0, *) {
+            if w.windowScene?.activationState != .foregroundActive {
+                return false
+            }
+        }
+        if w.isHidden || w.alpha <= 0.0 {
+            return false
+        }
+        if w.bounds.isEmpty || w.bounds == .zero {
+            return false
+        }
+        let screenBounds = (w.windowScene?.screen.bounds ?? UIScreen.main.bounds).integral
+        if w.bounds.integral != screenBounds {
+            return false
+        }
+        return true
     }
     
     // How to used:
