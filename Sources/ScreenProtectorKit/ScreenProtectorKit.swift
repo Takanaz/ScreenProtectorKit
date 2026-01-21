@@ -58,17 +58,12 @@ public class ScreenProtectorKit {
         guard let w = window else { return }
 
         if (!w.subviews.contains(screenPrevent)) {
-            screenPrevent.translatesAutoresizingMaskIntoConstraints = false
             screenPrevent.isUserInteractionEnabled = false
             screenPrevent.backgroundColor = .clear
             screenPrevent.textColor = .clear
+            screenPrevent.frame = w.bounds
+            screenPrevent.autoresizingMask = [.flexibleWidth, .flexibleHeight]
             w.addSubview(screenPrevent)
-            NSLayoutConstraint.activate([
-                screenPrevent.topAnchor.constraint(equalTo: w.topAnchor),
-                screenPrevent.leadingAnchor.constraint(equalTo: w.leadingAnchor),
-                screenPrevent.trailingAnchor.constraint(equalTo: w.trailingAnchor),
-                screenPrevent.bottomAnchor.constraint(equalTo: w.bottomAnchor)
-            ])
         }
     }
     
