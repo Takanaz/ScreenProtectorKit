@@ -32,7 +32,7 @@ public class ScreenProtectorKit {
     private var reparentWorkItem: DispatchWorkItem? = nil
     private let reparentDelay: TimeInterval = 0.2
     private let enableLayerReparenting: Bool = true
-    private let restoreLayerOnDisable: Bool = false
+    private let restoreLayerOnDisable: Bool = true
     
     private enum ReparentState {
         case on
