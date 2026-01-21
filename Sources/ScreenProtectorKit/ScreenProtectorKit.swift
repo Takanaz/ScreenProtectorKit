@@ -23,6 +23,7 @@ public class ScreenProtectorKit {
     private var screenBlur: UIView? = nil
     private var screenColor: UIView? = nil
     private var screenPrevent = UITextField()
+    private var secureOverlayWindow: UIWindow? = nil
     private weak var windowSuperlayer: CALayer? = nil
     private var screenshotObserve: NSObjectProtocol? = nil
     private var screenRecordObserve: NSObjectProtocol? = nil
@@ -34,6 +35,7 @@ public class ScreenProtectorKit {
     private let enableLayerReparenting: Bool = true
     private let restoreLayerOnDisable: Bool = true
     private let removeScreenPreventOnDisable: Bool = true
+    private let useOverlayWindowForScreenshotProtection: Bool = true
     
     private enum ReparentState {
         case on
@@ -78,6 +80,10 @@ public class ScreenProtectorKit {
         if isUpdatingPreventScreenshot { return }
         isUpdatingPreventScreenshot = true
         defer { isUpdatingPreventScreenshot = false }
+        if useOverlayWindowForScreenshotProtection {
+            showSecureOverlay()
+            return
+        }
         configurePreventionScreenshot()
 
         screenPrevent.isSecureTextEntry = true
@@ -97,6 +103,10 @@ public class ScreenProtectorKit {
     // }
     public func disablePreventScreenshot() {
         guard window != nil else { return }
+        if useOverlayWindowForScreenshotProtection {
+            hideSecureOverlay()
+            return
+        }
         screenPrevent.isSecureTextEntry = false
         if !enableLayerReparenting {
             return
@@ -109,6 +119,58 @@ public class ScreenProtectorKit {
                 screenPrevent.removeFromSuperview()
             }
         }
+    }
+
+    private func showSecureOverlay() {
+        guard let w = window else { return }
+        let overlay = ensureSecureOverlayWindow(for: w)
+        overlay.isHidden = false
+    }
+
+    private func hideSecureOverlay() {
+        secureOverlayWindow?.isHidden = true
+    }
+
+    private func ensureSecureOverlayWindow(for w: UIWindow) -> UIWindow {
+        if let existing = secureOverlayWindow, existing.windowScene === w.windowScene {
+            if let rootView = existing.rootViewController?.view {
+                if rootView.bounds != w.bounds {
+                    rootView.frame = w.bounds
+                }
+            }
+            return existing
+        }
+
+        let overlayWindow: UIWindow
+        if #available(iOS 13.0, *), let scene = w.windowScene {
+            overlayWindow = UIWindow(windowScene: scene)
+        } else {
+            overlayWindow = UIWindow(frame: w.bounds)
+        }
+
+        let rootVC = UIViewController()
+        rootVC.view.backgroundColor = .clear
+        rootVC.view.isUserInteractionEnabled = false
+        rootVC.view.frame = w.bounds
+        rootVC.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+
+        screenPrevent.removeFromSuperview()
+        screenPrevent.isUserInteractionEnabled = false
+        screenPrevent.backgroundColor = .clear
+        screenPrevent.textColor = .clear
+        screenPrevent.isSecureTextEntry = true
+        screenPrevent.frame = rootVC.view.bounds
+        screenPrevent.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        rootVC.view.addSubview(screenPrevent)
+
+        overlayWindow.rootViewController = rootVC
+        overlayWindow.windowLevel = .alert + 1
+        overlayWindow.isHidden = true
+        overlayWindow.backgroundColor = .clear
+        overlayWindow.isUserInteractionEnabled = false
+
+        secureOverlayWindow = overlayWindow
+        return overlayWindow
     }
 
     private func scheduleReparent(_ state: ReparentState) {
@@ -124,6 +186,12 @@ public class ScreenProtectorKit {
                 guard self.canReparentWindowLayer(w) else { return }
                 self.attachSecureLayerIfNeeded(w)
             case .off:
+                guard self.canReparentWindowLayer(w) else {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + self.reparentDelay) { [weak self] in
+                        self?.scheduleReparent(.off)
+                    }
+                    return
+                }
                 self.restoreWindowLayerIfNeeded(w)
             }
         }
