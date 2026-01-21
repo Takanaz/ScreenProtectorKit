@@ -83,7 +83,6 @@ public class ScreenProtectorKit {
         configurePreventionScreenshot()
 
         screenPrevent.isSecureTextEntry = true
-        screenPrevent.layoutIfNeeded()
 
         scheduleReparent(.on)
     }
