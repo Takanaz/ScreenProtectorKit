@@ -33,6 +33,7 @@ public class ScreenProtectorKit {
     private let reparentDelay: TimeInterval = 0.2
     private let enableLayerReparenting: Bool = true
     private let restoreLayerOnDisable: Bool = true
+    private let removeScreenPreventOnDisable: Bool = true
     
     private enum ReparentState {
         case on
@@ -102,6 +103,11 @@ public class ScreenProtectorKit {
         }
         if restoreLayerOnDisable && isWindowLayerReparented {
             scheduleReparent(.off)
+        }
+        if removeScreenPreventOnDisable, let w = window {
+            if screenPrevent.superview === w {
+                screenPrevent.removeFromSuperview()
+            }
         }
     }
 
