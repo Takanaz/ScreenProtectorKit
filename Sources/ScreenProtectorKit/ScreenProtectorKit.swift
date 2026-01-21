@@ -31,6 +31,7 @@ public class ScreenProtectorKit {
     private var pendingReparentState: ReparentState? = nil
     private var reparentWorkItem: DispatchWorkItem? = nil
     private let reparentDelay: TimeInterval = 0.2
+    private let enableLayerReparenting: Bool = false
     
     private enum ReparentState {
         case on
@@ -84,6 +85,9 @@ public class ScreenProtectorKit {
 
         screenPrevent.isSecureTextEntry = true
 
+        if !enableLayerReparenting {
+            return
+        }
         scheduleReparent(.on)
     }
     
@@ -95,6 +99,9 @@ public class ScreenProtectorKit {
     public func disablePreventScreenshot() {
         guard window != nil else { return }
         screenPrevent.isSecureTextEntry = false
+        if !enableLayerReparenting {
+            return
+        }
         scheduleReparent(.off)
     }
 
