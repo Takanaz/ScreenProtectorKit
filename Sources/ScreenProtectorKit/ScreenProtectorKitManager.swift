@@ -9,6 +9,7 @@
 /// and data leakage protection visuals (blur, image, color). It also supports state snapshotting
 /// to copy configuration between instances and re-apply later.
 
+#if canImport(UIKit)
 import UIKit
 
 /// Executes the given closure on the main thread. If already on main, runs immediately; otherwise dispatches asynchronously.
@@ -371,3 +372,4 @@ public final class ScreenProtectorKitManager: ScreenProtectorKitManaging {
         }
     }
 }
+#endif

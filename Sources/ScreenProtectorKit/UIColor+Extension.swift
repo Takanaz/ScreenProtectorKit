@@ -5,6 +5,7 @@
 //  Created by Endtry on 1/3/2565 BE.
 //
 
+#if canImport(UIKit)
 import UIKit
 
 extension UIColor {
@@ -22,3 +23,4 @@ extension UIColor {
         )
     }
 }
+#endif

@@ -5,6 +5,7 @@
 //  Created by prongbang on 19/2/2565 BE.
 //
 
+#if canImport(UIKit)
 import UIKit
 
 //  How to used:
@@ -292,3 +293,4 @@ public class ScreenProtectorKit {
         return UIScreen.main.isCaptured
     }
 }
+#endif

@@ -5,6 +5,7 @@
 //  Created by INTENIQUETIC on 16/10/2568 BE.
 //
 
+#if canImport(UIKit)
 import UIKit
 
 public protocol WindowManaging {
@@ -56,3 +57,4 @@ public final class WindowManager: WindowManaging {
         }
     }
 }
+#endif
