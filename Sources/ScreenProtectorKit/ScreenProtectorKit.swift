@@ -24,6 +24,7 @@ public class ScreenProtectorKit {
     private var screenColor: UIView? = nil
     private var screenPrevent = UITextField()
     private var secureOverlayWindow: UIWindow? = nil
+    private weak var previousKeyWindow: UIWindow? = nil
     private weak var windowSuperlayer: CALayer? = nil
     private var screenshotObserve: NSObjectProtocol? = nil
     private var screenRecordObserve: NSObjectProtocol? = nil
@@ -124,11 +125,19 @@ public class ScreenProtectorKit {
     private func showSecureOverlay() {
         guard let w = window else { return }
         let overlay = ensureSecureOverlayWindow(for: w)
+        if previousKeyWindow == nil {
+            previousKeyWindow = UIApplication.shared.windows.first { $0.isKeyWindow }
+        }
         overlay.isHidden = false
+        overlay.makeKeyAndVisible()
     }
 
     private func hideSecureOverlay() {
         secureOverlayWindow?.isHidden = true
+        if let previous = previousKeyWindow {
+            previous.makeKeyAndVisible()
+            previousKeyWindow = nil
+        }
     }
 
     private func ensureSecureOverlayWindow(for w: UIWindow) -> UIWindow {
