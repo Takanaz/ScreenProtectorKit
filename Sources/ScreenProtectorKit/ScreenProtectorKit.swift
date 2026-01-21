@@ -28,6 +28,14 @@ public class ScreenProtectorKit {
     private var screenRecordObserve: NSObjectProtocol? = nil
     private var isWindowLayerReparented = false
     private var isUpdatingPreventScreenshot = false
+    private var pendingReparentState: ReparentState? = nil
+    private var reparentWorkItem: DispatchWorkItem? = nil
+    private let reparentDelay: TimeInterval = 0.2
+    
+    private enum ReparentState {
+        case on
+        case off
+    }
     
     public init(window: UIWindow?) {
         self.window = window
@@ -68,7 +76,7 @@ public class ScreenProtectorKit {
     //     screenProtectorKit.enabledPreventScreenshot()
     // }
     public func enabledPreventScreenshot() {
-        guard let w = window else { return }
+        guard window != nil else { return }
         if isUpdatingPreventScreenshot { return }
         isUpdatingPreventScreenshot = true
         defer { isUpdatingPreventScreenshot = false }
@@ -77,8 +85,41 @@ public class ScreenProtectorKit {
         screenPrevent.isSecureTextEntry = true
         screenPrevent.layoutIfNeeded()
 
-        guard canReparentWindowLayer(w) else { return }
+        scheduleReparent(.on)
+    }
+    
+    // How to used:
+    //
+    // override func applicationWillResignActive(_ application: UIApplication) {
+    //     screenProtectorKit.disablePreventScreenshot()
+    // }
+    public func disablePreventScreenshot() {
+        guard window != nil else { return }
+        screenPrevent.isSecureTextEntry = false
+        scheduleReparent(.off)
+    }
 
+    private func scheduleReparent(_ state: ReparentState) {
+        pendingReparentState = state
+        reparentWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            guard let w = self.window else { return }
+            guard let pending = self.pendingReparentState else { return }
+            self.pendingReparentState = nil
+            switch pending {
+            case .on:
+                guard self.canReparentWindowLayer(w) else { return }
+                self.attachSecureLayerIfNeeded(w)
+            case .off:
+                self.restoreWindowLayerIfNeeded(w)
+            }
+        }
+        reparentWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + reparentDelay, execute: workItem)
+    }
+
+    private func attachSecureLayerIfNeeded(_ w: UIWindow) {
         if windowSuperlayer == nil {
             windowSuperlayer = w.layer.superlayer
         }
@@ -102,16 +143,8 @@ public class ScreenProtectorKit {
             isWindowLayerReparented = true
         }
     }
-    
-    // How to used:
-    //
-    // override func applicationWillResignActive(_ application: UIApplication) {
-    //     screenProtectorKit.disablePreventScreenshot()
-    // }
-    public func disablePreventScreenshot() {
-        guard let w = window else { return }
-        screenPrevent.isSecureTextEntry = false
 
+    private func restoreWindowLayerIfNeeded(_ w: UIWindow) {
         guard isWindowLayerReparented else { return }
         isWindowLayerReparented = false
 
