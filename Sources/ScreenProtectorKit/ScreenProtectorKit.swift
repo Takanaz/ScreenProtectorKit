@@ -31,7 +31,8 @@ public class ScreenProtectorKit {
     private var pendingReparentState: ReparentState? = nil
     private var reparentWorkItem: DispatchWorkItem? = nil
     private let reparentDelay: TimeInterval = 0.2
-    private let enableLayerReparenting: Bool = false
+    private let enableLayerReparenting: Bool = true
+    private let restoreLayerOnDisable: Bool = false
     
     private enum ReparentState {
         case on
@@ -88,7 +89,9 @@ public class ScreenProtectorKit {
         if !enableLayerReparenting {
             return
         }
-        scheduleReparent(.on)
+        if !isWindowLayerReparented {
+            scheduleReparent(.on)
+        }
     }
     
     // How to used:
@@ -102,7 +105,9 @@ public class ScreenProtectorKit {
         if !enableLayerReparenting {
             return
         }
-        scheduleReparent(.off)
+        if restoreLayerOnDisable && isWindowLayerReparented {
+            scheduleReparent(.off)
+        }
     }
 
     private func scheduleReparent(_ state: ReparentState) {
