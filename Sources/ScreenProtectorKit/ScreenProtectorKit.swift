@@ -592,4 +592,12 @@ public class ScreenProtectorKit {
         return UIScreen.main.isCaptured
     }
 }
+
+private final class SafeAreaSentinelView: UIView {
+    var onSafeAreaChange: (() -> Void)?
+    override func safeAreaInsetsDidChange() {
+        super.safeAreaInsetsDidChange()
+        onSafeAreaChange?()
+    }
+}
 #endif
