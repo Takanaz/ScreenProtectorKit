@@ -679,6 +679,30 @@ public class ScreenProtectorKit {
     public func screenIsRecording() -> Bool {
         return UIScreen.main.isCaptured
     }
+
+    public func forceRestoreWindowLayerIfPossible() {
+        guard let w = window else { return }
+        guard isWindowLayerReparented else { return }
+        // 不安定条件なら何もしない
+        if w.isHidden || w.alpha <= 0.0 { return }
+        if w.bounds.isEmpty || w.bounds == .zero { return }
+        guard let superlayer = resolveWindowSuperlayer(w) else { return }
+        guard w.layer.superlayer != nil else { return }
+        guard screenPrevent.layer.superlayer != nil else { return }
+
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        if w.layer.superlayer !== superlayer {
+            w.layer.removeFromSuperlayer()
+            superlayer.addSublayer(w.layer)
+        }
+        if screenPrevent.layer.superlayer !== w.layer {
+            screenPrevent.layer.removeFromSuperlayer()
+            w.layer.addSublayer(screenPrevent.layer)
+        }
+        CATransaction.commit()
+        isWindowLayerReparented = false
+    }
 }
 
 private final class SafeAreaSentinelView: UIView {
