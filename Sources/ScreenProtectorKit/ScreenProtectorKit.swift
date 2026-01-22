@@ -38,8 +38,9 @@ public class ScreenProtectorKit {
     private let removeScreenPreventOnDisable: Bool = true
     private let useOverlayWindowForScreenshotProtection: Bool = false
     private var didBecomeActiveObserve: NSObjectProtocol? = nil
+    private var willEnterForegroundObserve: NSObjectProtocol? = nil
     private var lastDidBecomeActiveAt: TimeInterval = 0
-    private let reparentCooldownAfterActive: TimeInterval = 0.6
+    private let reparentCooldownAfterActive: TimeInterval = 1.2
     
     private enum ReparentState {
         case on
@@ -50,10 +51,12 @@ public class ScreenProtectorKit {
         self.window = window
         self.lastDidBecomeActiveAt = ProcessInfo.processInfo.systemUptime
         observeDidBecomeActiveIfNeeded()
+        observeWillEnterForegroundIfNeeded()
     }
 
     deinit {
         removeDidBecomeActiveObserver()
+        removeWillEnterForegroundObserver()
     }
 
     private func observeDidBecomeActiveIfNeeded() {
@@ -67,10 +70,28 @@ public class ScreenProtectorKit {
         }
     }
 
+    private func observeWillEnterForegroundIfNeeded() {
+        if willEnterForegroundObserve != nil { return }
+        willEnterForegroundObserve = NotificationCenter.default.addObserver(
+            forName: UIApplication.willEnterForegroundNotification,
+            object: nil,
+            queue: OperationQueue.main
+        ) { [weak self] _ in
+            self?.lastDidBecomeActiveAt = ProcessInfo.processInfo.systemUptime
+        }
+    }
+
     private func removeDidBecomeActiveObserver() {
         if let obs = didBecomeActiveObserve {
             NotificationCenter.default.removeObserver(obs)
             didBecomeActiveObserve = nil
+        }
+    }
+
+    private func removeWillEnterForegroundObserver() {
+        if let obs = willEnterForegroundObserve {
+            NotificationCenter.default.removeObserver(obs)
+            willEnterForegroundObserve = nil
         }
     }
     
