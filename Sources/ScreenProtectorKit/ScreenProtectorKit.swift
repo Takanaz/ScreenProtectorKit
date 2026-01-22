@@ -310,27 +310,41 @@ public class ScreenProtectorKit {
     
     private func restoreWindowLayerIfNeeded(_ w: UIWindow) {
         guard isWindowLayerReparented else { return }
+        // safeArea 更新直後は触らない
+        if lastSafeAreaUpdateAt > 0 {
+            let now = ProcessInfo.processInfo.systemUptime
+            if now - lastSafeAreaUpdateAt < safeAreaCooldown {
+                scheduleReparent(.off)
+                return
+            }
+        }
         guard let superlayer = resolveWindowSuperlayer(w) else {
             // superlayer が取れない場合は復元できないため再試行
             scheduleReparent(.off)
             return
         }
+        // layer が不安定なら延期
+        guard w.layer.superlayer != nil else {
+            scheduleReparent(.off)
+            return
+        }
+        guard screenPrevent.layer.superlayer != nil else {
+            scheduleReparent(.off)
+            return
+        }
 
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
         if w.layer.superlayer !== superlayer {
-            CATransaction.begin()
-            CATransaction.setDisableActions(true)
             w.layer.removeFromSuperlayer()
             superlayer.addSublayer(w.layer)
-            CATransaction.commit()
         }
 
         if screenPrevent.layer.superlayer !== w.layer {
-            CATransaction.begin()
-            CATransaction.setDisableActions(true)
             screenPrevent.layer.removeFromSuperlayer()
             w.layer.addSublayer(screenPrevent.layer)
-            CATransaction.commit()
         }
+        CATransaction.commit()
         isWindowLayerReparented = false
     }
 
