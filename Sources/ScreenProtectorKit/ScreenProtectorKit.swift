@@ -30,6 +30,8 @@ public class ScreenProtectorKit {
     private var screenRecordObserve: NSObjectProtocol? = nil
     private var isWindowLayerReparented = false
     private var isUpdatingPreventScreenshot = false
+    private var lastReparentAt: TimeInterval = 0
+    private let minReparentInterval: TimeInterval = 1.0
     private var pendingReparentState: ReparentState? = nil
     private var reparentWorkItem: DispatchWorkItem? = nil
     private let reparentDelay: TimeInterval = 0.2
@@ -241,6 +243,10 @@ public class ScreenProtectorKit {
             switch pending {
             case .on:
                 guard self.canReparentWindowLayer(w) else { return }
+                guard self.canReparentNow() else {
+                    self.scheduleReparent(.on)
+                    return
+                }
                 self.attachSecureLayerIfNeeded(w)
             case .off:
                 guard self.canRestoreWindowLayer(w) else {
@@ -262,6 +268,11 @@ public class ScreenProtectorKit {
         }
 
         guard let superlayer = windowSuperlayer else { return }
+        // window.layer.superlayer が無い場合は不安定なので延期
+        if w.layer.superlayer == nil {
+            scheduleReparent(.on)
+            return
+        }
 
         if screenPrevent.layer.superlayer !== superlayer {
             superlayer.addSublayer(screenPrevent.layer)
@@ -274,10 +285,20 @@ public class ScreenProtectorKit {
             return screenPrevent.layer.sublayers?.first
         }()
 
-        if let secureLayer = secureLayer, w.layer.superlayer !== secureLayer {
+        guard let secureLayer = secureLayer else {
+            // secure layer がまだ生成されていない
+            scheduleReparent(.on)
+            return
+        }
+
+        if w.layer.superlayer !== secureLayer {
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
             w.layer.removeFromSuperlayer()
             secureLayer.addSublayer(w.layer)
+            CATransaction.commit()
             isWindowLayerReparented = true
+            lastReparentAt = ProcessInfo.processInfo.systemUptime
         }
     }
     
@@ -290,13 +311,19 @@ public class ScreenProtectorKit {
         }
 
         if w.layer.superlayer !== superlayer {
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
             w.layer.removeFromSuperlayer()
             superlayer.addSublayer(w.layer)
+            CATransaction.commit()
         }
 
         if screenPrevent.layer.superlayer !== w.layer {
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
             screenPrevent.layer.removeFromSuperlayer()
             w.layer.addSublayer(screenPrevent.layer)
+            CATransaction.commit()
         }
         isWindowLayerReparented = false
     }
@@ -320,6 +347,14 @@ public class ScreenProtectorKit {
         }
         let screenBounds = (w.windowScene?.screen.bounds ?? UIScreen.main.bounds).integral
         if w.bounds.integral != screenBounds {
+            return false
+        }
+        return true
+    }
+
+    private func canReparentNow() -> Bool {
+        let now = ProcessInfo.processInfo.systemUptime
+        if lastReparentAt > 0, now - lastReparentAt < minReparentInterval {
             return false
         }
         return true
