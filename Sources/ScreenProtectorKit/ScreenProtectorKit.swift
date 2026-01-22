@@ -32,6 +32,9 @@ public class ScreenProtectorKit {
     private var isUpdatingPreventScreenshot = false
     private var lastReparentAt: TimeInterval = 0
     private let minReparentInterval: TimeInterval = 1.0
+    private var safeAreaSentinel: SafeAreaSentinelView? = nil
+    private var lastSafeAreaUpdateAt: TimeInterval = 0
+    private let safeAreaCooldown: TimeInterval = 0.6
     private var pendingReparentState: ReparentState? = nil
     private var reparentWorkItem: DispatchWorkItem? = nil
     private let reparentDelay: TimeInterval = 0.2
@@ -54,6 +57,7 @@ public class ScreenProtectorKit {
         self.lastDidBecomeActiveAt = ProcessInfo.processInfo.systemUptime
         observeDidBecomeActiveIfNeeded()
         observeWillEnterForegroundIfNeeded()
+        installSafeAreaSentinelIfNeeded()
     }
 
     deinit {
@@ -110,6 +114,7 @@ public class ScreenProtectorKit {
     //  }
     public func configurePreventionScreenshot() {
         guard let w = window else { return }
+        installSafeAreaSentinelIfNeeded()
 
         if (!w.subviews.contains(screenPrevent)) {
             screenPrevent.isUserInteractionEnabled = false
@@ -263,6 +268,7 @@ public class ScreenProtectorKit {
     }
 
     private func attachSecureLayerIfNeeded(_ w: UIWindow) {
+        installSafeAreaSentinelIfNeeded()
         if windowSuperlayer == nil {
             windowSuperlayer = w.layer.superlayer
         }
@@ -334,6 +340,10 @@ public class ScreenProtectorKit {
            now - lastDidBecomeActiveAt < reparentCooldownAfterActive {
             return false
         }
+        if lastSafeAreaUpdateAt > 0,
+           now - lastSafeAreaUpdateAt < safeAreaCooldown {
+            return false
+        }
         if #available(iOS 13.0, *) {
             if w.windowScene?.activationState != .foregroundActive {
                 return false
@@ -358,6 +368,19 @@ public class ScreenProtectorKit {
             return false
         }
         return true
+    }
+
+    private func installSafeAreaSentinelIfNeeded() {
+        guard let w = window else { return }
+        if safeAreaSentinel != nil { return }
+        let sentinel = SafeAreaSentinelView(frame: .zero)
+        sentinel.isUserInteractionEnabled = false
+        sentinel.isHidden = true
+        sentinel.onSafeAreaChange = { [weak self] in
+            self?.lastSafeAreaUpdateAt = ProcessInfo.processInfo.systemUptime
+        }
+        w.addSubview(sentinel)
+        safeAreaSentinel = sentinel
     }
 
     private func resolveWindowSuperlayer(_ w: UIWindow) -> CALayer? {
