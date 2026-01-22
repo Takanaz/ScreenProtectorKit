@@ -290,28 +290,9 @@ public class ScreenProtectorKit {
 
         // screenPrevent が w.layer にぶら下がっている場合は先に外す（安全時のみ）
         if screenPrevent.layer.superlayer === w.layer {
-            // safeArea 更新直後は触らない
-            if lastSafeAreaUpdateAt > 0 {
-                let now = ProcessInfo.processInfo.systemUptime
-                if now - lastSafeAreaUpdateAt < safeAreaCooldown {
-                    scheduleReparent(.on)
-                    return
-                }
-            }
-            // layer が不安定なら延期
-            guard w.layer.superlayer != nil else {
-                scheduleReparent(.on)
-                return
-            }
-            guard screenPrevent.layer.superlayer != nil else {
-                scheduleReparent(.on)
-                return
-            }
-            CATransaction.begin()
-            CATransaction.setDisableActions(true)
-            screenPrevent.layer.removeFromSuperlayer()
-            superlayer.addSublayer(screenPrevent.layer)
-            CATransaction.commit()
+            // ここは触らず延期（安全なタイミングまで待つ）
+            scheduleReparent(.on)
+            return
         }
 
         if screenPrevent.layer.superlayer !== superlayer {
