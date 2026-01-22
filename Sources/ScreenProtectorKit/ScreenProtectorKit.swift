@@ -36,7 +36,10 @@ public class ScreenProtectorKit {
     private let enableLayerReparenting: Bool = true
     private let restoreLayerOnDisable: Bool = true
     private let removeScreenPreventOnDisable: Bool = true
-    private let useOverlayWindowForScreenshotProtection: Bool = true
+    private let useOverlayWindowForScreenshotProtection: Bool = false
+    private var didBecomeActiveObserve: NSObjectProtocol? = nil
+    private var lastDidBecomeActiveAt: TimeInterval = 0
+    private let reparentCooldownAfterActive: TimeInterval = 0.6
     
     private enum ReparentState {
         case on
@@ -45,6 +48,30 @@ public class ScreenProtectorKit {
     
     public init(window: UIWindow?) {
         self.window = window
+        self.lastDidBecomeActiveAt = ProcessInfo.processInfo.systemUptime
+        observeDidBecomeActiveIfNeeded()
+    }
+
+    deinit {
+        removeDidBecomeActiveObserver()
+    }
+
+    private func observeDidBecomeActiveIfNeeded() {
+        if didBecomeActiveObserve != nil { return }
+        didBecomeActiveObserve = NotificationCenter.default.addObserver(
+            forName: UIApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: OperationQueue.main
+        ) { [weak self] _ in
+            self?.lastDidBecomeActiveAt = ProcessInfo.processInfo.systemUptime
+        }
+    }
+
+    private func removeDidBecomeActiveObserver() {
+        if let obs = didBecomeActiveObserve {
+            NotificationCenter.default.removeObserver(obs)
+            didBecomeActiveObserve = nil
+        }
     }
     
     //  How to used:
@@ -232,7 +259,7 @@ public class ScreenProtectorKit {
             isWindowLayerReparented = true
         }
     }
-
+    
     private func restoreWindowLayerIfNeeded(_ w: UIWindow) {
         guard isWindowLayerReparented else { return }
         isWindowLayerReparented = false
@@ -251,6 +278,11 @@ public class ScreenProtectorKit {
     }
 
     private func canReparentWindowLayer(_ w: UIWindow) -> Bool {
+        let now = ProcessInfo.processInfo.systemUptime
+        if lastDidBecomeActiveAt > 0,
+           now - lastDidBecomeActiveAt < reparentCooldownAfterActive {
+            return false
+        }
         if #available(iOS 13.0, *) {
             if w.windowScene?.activationState != .foregroundActive {
                 return false
