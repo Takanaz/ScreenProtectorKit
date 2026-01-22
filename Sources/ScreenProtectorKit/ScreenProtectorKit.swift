@@ -29,6 +29,7 @@ public class ScreenProtectorKit {
     private var screenshotObserve: NSObjectProtocol? = nil
     private var screenRecordObserve: NSObjectProtocol? = nil
     private var isWindowLayerReparented = false
+    private var hasReparentedForWindow = false
     private var isUpdatingPreventScreenshot = false
     private var lastReparentAt: TimeInterval = 0
     private let minReparentInterval: TimeInterval = 1.0
@@ -68,6 +69,7 @@ public class ScreenProtectorKit {
         window = newWindow
         windowSuperlayer = nil
         isWindowLayerReparented = false
+        hasReparentedForWindow = false
         pendingReparentState = nil
         reparentWorkItem?.cancel()
         configurePreventionScreenshot()
@@ -287,6 +289,9 @@ public class ScreenProtectorKit {
     }
 
     private func attachSecureLayerIfNeeded(_ w: UIWindow) {
+        if hasReparentedForWindow {
+            return
+        }
         installSafeAreaSentinelIfNeeded()
         if windowSuperlayer == nil {
             windowSuperlayer = w.layer.superlayer
@@ -324,6 +329,7 @@ public class ScreenProtectorKit {
             CATransaction.commit()
             isWindowLayerReparented = true
             lastReparentAt = ProcessInfo.processInfo.systemUptime
+            hasReparentedForWindow = true
         }
     }
     
