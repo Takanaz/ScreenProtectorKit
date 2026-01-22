@@ -32,6 +32,8 @@ public class ScreenProtectorKit {
     private var isUpdatingPreventScreenshot = false
     private var lastReparentAt: TimeInterval = 0
     private let minReparentInterval: TimeInterval = 1.0
+    private var lastRestoreAt: TimeInterval = 0
+    private let minRestoreInterval: TimeInterval = 1.0
     private var safeAreaSentinel: SafeAreaSentinelView? = nil
     private var lastSafeAreaUpdateAt: TimeInterval = 0
     private let safeAreaCooldown: TimeInterval = 0.6
@@ -260,6 +262,12 @@ public class ScreenProtectorKit {
                     }
                     return
                 }
+                guard self.canRestoreNow() else {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + self.reparentDelay) { [weak self] in
+                        self?.scheduleReparent(.off)
+                    }
+                    return
+                }
                 self.restoreWindowLayerIfNeeded(w)
             }
         }
@@ -346,6 +354,7 @@ public class ScreenProtectorKit {
         }
         CATransaction.commit()
         isWindowLayerReparented = false
+        lastRestoreAt = ProcessInfo.processInfo.systemUptime
     }
 
     private func canReparentWindowLayer(_ w: UIWindow) -> Bool {
@@ -379,6 +388,17 @@ public class ScreenProtectorKit {
     private func canReparentNow() -> Bool {
         let now = ProcessInfo.processInfo.systemUptime
         if lastReparentAt > 0, now - lastReparentAt < minReparentInterval {
+            return false
+        }
+        return true
+    }
+
+    private func canRestoreNow() -> Bool {
+        let now = ProcessInfo.processInfo.systemUptime
+        if lastRestoreAt > 0, now - lastRestoreAt < minRestoreInterval {
+            return false
+        }
+        if lastSafeAreaUpdateAt > 0, now - lastSafeAreaUpdateAt < safeAreaCooldown {
             return false
         }
         return true
