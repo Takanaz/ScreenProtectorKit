@@ -64,11 +64,13 @@ public class ScreenProtectorKit {
 
     public func updateWindowIfNeeded(_ newWindow: UIWindow?) {
         guard let newWindow else { return }
-        if window !== newWindow {
-            window = newWindow
-            windowSuperlayer = nil
-            configurePreventionScreenshot()
-        }
+        if window === newWindow { return }
+        window = newWindow
+        windowSuperlayer = nil
+        isWindowLayerReparented = false
+        pendingReparentState = nil
+        reparentWorkItem?.cancel()
+        configurePreventionScreenshot()
     }
 
     deinit {
