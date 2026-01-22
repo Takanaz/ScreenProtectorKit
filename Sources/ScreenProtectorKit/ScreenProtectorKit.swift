@@ -262,7 +262,12 @@ public class ScreenProtectorKit {
             self.pendingReparentState = nil
             switch pending {
             case .on:
-                guard self.canReparentWindowLayer(w) else { return }
+                guard self.canReparentWindowLayer(w) else {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + self.reparentDelay) { [weak self] in
+                        self?.scheduleReparent(.on)
+                    }
+                    return
+                }
                 guard self.canReparentNow() else {
                     self.scheduleReparent(.on)
                     return
