@@ -75,6 +75,12 @@ public class ScreenProtectorKit {
         configurePreventionScreenshot()
     }
 
+    public func prepareReparentForScreenshotOn() {
+        // ON に切り替える時だけ再度 1回 reparent を許可
+        hasReparentedForWindow = false
+        lastReparentAt = 0
+    }
+
     deinit {
         removeDidBecomeActiveObserver()
         removeWillEnterForegroundObserver()
