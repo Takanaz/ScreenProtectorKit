@@ -283,9 +283,11 @@ public class ScreenProtectorKit {
     
     private func restoreWindowLayerIfNeeded(_ w: UIWindow) {
         guard isWindowLayerReparented else { return }
-        isWindowLayerReparented = false
-
-        guard let superlayer = windowSuperlayer else { return }
+        guard let superlayer = resolveWindowSuperlayer(w) else {
+            // superlayer が取れない場合は復元できないため再試行
+            scheduleReparent(.off)
+            return
+        }
 
         if w.layer.superlayer !== superlayer {
             w.layer.removeFromSuperlayer()
@@ -296,6 +298,7 @@ public class ScreenProtectorKit {
             screenPrevent.layer.removeFromSuperlayer()
             w.layer.addSublayer(screenPrevent.layer)
         }
+        isWindowLayerReparented = false
     }
 
     private func canReparentWindowLayer(_ w: UIWindow) -> Bool {
@@ -320,6 +323,24 @@ public class ScreenProtectorKit {
             return false
         }
         return true
+    }
+
+    private func resolveWindowSuperlayer(_ w: UIWindow) -> CALayer? {
+        if let existing = windowSuperlayer {
+            return existing
+        }
+        if let fromPrevent = screenPrevent.layer.superlayer {
+            windowSuperlayer = fromPrevent
+            return fromPrevent
+        }
+        // w.layer.superlayer は secureLayer の可能性がある
+        if let secureLayer = w.layer.superlayer,
+           let preventLayer = secureLayer.superlayer,
+           let superlayer = preventLayer.superlayer {
+            windowSuperlayer = superlayer
+            return superlayer
+        }
+        return nil
     }
 
     private func canRestoreWindowLayer(_ w: UIWindow) -> Bool {
