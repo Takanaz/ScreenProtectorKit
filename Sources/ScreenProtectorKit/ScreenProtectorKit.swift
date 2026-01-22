@@ -243,7 +243,7 @@ public class ScreenProtectorKit {
                 guard self.canReparentWindowLayer(w) else { return }
                 self.attachSecureLayerIfNeeded(w)
             case .off:
-                guard self.canReparentWindowLayer(w) else {
+                guard self.canRestoreWindowLayer(w) else {
                     DispatchQueue.main.asyncAfter(deadline: .now() + self.reparentDelay) { [weak self] in
                         self?.scheduleReparent(.off)
                     }
@@ -317,6 +317,21 @@ public class ScreenProtectorKit {
         }
         let screenBounds = (w.windowScene?.screen.bounds ?? UIScreen.main.bounds).integral
         if w.bounds.integral != screenBounds {
+            return false
+        }
+        return true
+    }
+
+    private func canRestoreWindowLayer(_ w: UIWindow) -> Bool {
+        if #available(iOS 13.0, *) {
+            if w.windowScene?.activationState != .foregroundActive {
+                return false
+            }
+        }
+        if w.isHidden || w.alpha <= 0.0 {
+            return false
+        }
+        if w.bounds.isEmpty || w.bounds == .zero {
             return false
         }
         return true
