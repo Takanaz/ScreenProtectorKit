@@ -62,6 +62,15 @@ public class ScreenProtectorKit {
         installSafeAreaSentinelIfNeeded()
     }
 
+    public func updateWindowIfNeeded(_ newWindow: UIWindow?) {
+        guard let newWindow else { return }
+        if window !== newWindow {
+            window = newWindow
+            windowSuperlayer = nil
+            configurePreventionScreenshot()
+        }
+    }
+
     deinit {
         removeDidBecomeActiveObserver()
         removeWillEnterForegroundObserver()
