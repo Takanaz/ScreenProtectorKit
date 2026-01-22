@@ -48,7 +48,7 @@ public class ScreenProtectorKit {
     private var didBecomeActiveObserve: NSObjectProtocol? = nil
     private var willEnterForegroundObserve: NSObjectProtocol? = nil
     private var lastDidBecomeActiveAt: TimeInterval = 0
-    private let reparentCooldownAfterActive: TimeInterval = 1.2
+    private let reparentCooldownAfterActive: TimeInterval = 2.0
     
     private enum ReparentState {
         case on
