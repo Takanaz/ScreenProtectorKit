@@ -33,6 +33,10 @@ public class ScreenProtectorKit {
     private var isUpdatingPreventScreenshot = false
     private var lastReparentAt: TimeInterval = 0
     private let minReparentInterval: TimeInterval = 1.0
+    private var reparentDisplayLink: CADisplayLink? = nil
+    private var stableSafeAreaFrames: Int = 0
+    private let stableFramesRequired: Int = 6
+    private var lastSafeAreaInsets: UIEdgeInsets = .zero
     private var lastRestoreAt: TimeInterval = 0
     private let minRestoreInterval: TimeInterval = 1.0
     private var safeAreaSentinel: SafeAreaSentinelView? = nil
@@ -262,38 +266,7 @@ public class ScreenProtectorKit {
         pendingReparentState = state
         reparentWorkItem?.cancel()
         let workItem = DispatchWorkItem { [weak self] in
-            guard let self else { return }
-            guard let w = self.window else { return }
-            guard let pending = self.pendingReparentState else { return }
-            self.pendingReparentState = nil
-            switch pending {
-            case .on:
-                guard self.canReparentWindowLayer(w) else {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + self.reparentDelay) { [weak self] in
-                        self?.scheduleReparent(.on)
-                    }
-                    return
-                }
-                guard self.canReparentNow() else {
-                    self.scheduleReparent(.on)
-                    return
-                }
-                self.attachSecureLayerIfNeeded(w)
-            case .off:
-                guard self.canRestoreWindowLayer(w) else {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + self.reparentDelay) { [weak self] in
-                        self?.scheduleReparent(.off)
-                    }
-                    return
-                }
-                guard self.canRestoreNow() else {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + self.reparentDelay) { [weak self] in
-                        self?.scheduleReparent(.off)
-                    }
-                    return
-                }
-                self.restoreWindowLayerIfNeeded(w)
-            }
+            self?.startSafeReparentMonitor()
         }
         reparentWorkItem = workItem
         DispatchQueue.main.asyncAfter(deadline: .now() + reparentDelay, execute: workItem)
@@ -419,6 +392,59 @@ public class ScreenProtectorKit {
             return false
         }
         return true
+    }
+
+    private func startSafeReparentMonitor() {
+        guard reparentDisplayLink == nil else { return }
+        stableSafeAreaFrames = 0
+        if let w = window {
+            lastSafeAreaInsets = w.safeAreaInsets
+        }
+        let link = CADisplayLink(target: self, selector: #selector(tickSafeReparent))
+        link.add(to: .main, forMode: .common)
+        reparentDisplayLink = link
+    }
+
+    private func stopSafeReparentMonitor() {
+        reparentDisplayLink?.invalidate()
+        reparentDisplayLink = nil
+        stableSafeAreaFrames = 0
+    }
+
+    @objc private func tickSafeReparent() {
+        guard let w = window else {
+            stopSafeReparentMonitor()
+            scheduleReparent(.off)
+            return
+        }
+        guard let pending = pendingReparentState else {
+            stopSafeReparentMonitor()
+            return
+        }
+        // safeArea が安定しているか判定
+        let currentInsets = w.safeAreaInsets
+        if currentInsets == lastSafeAreaInsets {
+            stableSafeAreaFrames += 1
+        } else {
+            stableSafeAreaFrames = 0
+            lastSafeAreaInsets = currentInsets
+        }
+        if stableSafeAreaFrames < stableFramesRequired {
+            return
+        }
+
+        switch pending {
+        case .on:
+            guard canReparentWindowLayer(w), canReparentNow() else { return }
+            pendingReparentState = nil
+            stopSafeReparentMonitor()
+            attachSecureLayerIfNeeded(w)
+        case .off:
+            guard canRestoreWindowLayer(w), canRestoreNow() else { return }
+            pendingReparentState = nil
+            stopSafeReparentMonitor()
+            restoreWindowLayerIfNeeded(w)
+        }
     }
 
     private func canRestoreNow() -> Bool {
