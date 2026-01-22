@@ -288,6 +288,12 @@ public class ScreenProtectorKit {
             return
         }
 
+        // screenPrevent が w.layer にぶら下がっている場合は先に外す
+        if screenPrevent.layer.superlayer === w.layer {
+            screenPrevent.layer.removeFromSuperlayer()
+            superlayer.addSublayer(screenPrevent.layer)
+        }
+
         if screenPrevent.layer.superlayer !== superlayer {
             superlayer.addSublayer(screenPrevent.layer)
         }
@@ -301,6 +307,12 @@ public class ScreenProtectorKit {
 
         guard let secureLayer = secureLayer else {
             // secure layer がまだ生成されていない
+            scheduleReparent(.on)
+            return
+        }
+
+        // 循環参照の防止（cycle guard）
+        if isAncestor(w.layer, of: secureLayer) || isAncestor(secureLayer, of: w.layer) {
             scheduleReparent(.on)
             return
         }
@@ -487,6 +499,17 @@ public class ScreenProtectorKit {
             return superlayer
         }
         return nil
+    }
+
+    private func isAncestor(_ ancestor: CALayer, of layer: CALayer) -> Bool {
+        var current = layer.superlayer
+        while let superlayer = current {
+            if superlayer === ancestor {
+                return true
+            }
+            current = superlayer.superlayer
+        }
+        return false
     }
 
     private func canRestoreWindowLayer(_ w: UIWindow) -> Bool {
